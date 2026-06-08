@@ -61,45 +61,26 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val colorScheme = dynamicDarkColorScheme(applicationContext)
         super.onCreate(savedInstanceState)
-
         setContent {
             HealthConnectExportsTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(), color = colorScheme.background
-                ) {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = colorScheme.surface,
-                                scrolledContainerColor = colorScheme.surface,
-                                navigationIconContentColor = colorScheme.onSurface,
-                                actionIconContentColor = colorScheme.onSurface,
-                                titleContentColor = colorScheme.onSurface
-                            ), title = {
-                                Text(
-                                    text = "Health Connect Exporter",
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            })
-                        },
-                    ) { innerPadding ->
-                        Column(
-                            modifier = Modifier.padding(innerPadding),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = colorScheme.background) {
+                    Scaffold(topBar = {
+                        TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = colorScheme.surface,
+                            scrolledContainerColor = colorScheme.surface,
+                            navigationIconContentColor = colorScheme.onSurface,
+                            actionIconContentColor = colorScheme.onSurface,
+                            titleContentColor = colorScheme.onSurface
+                        ), title = { Text(text = "Operit Health Bridge", maxLines = 1, overflow = TextOverflow.Ellipsis) })
+                    }) { innerPadding ->
+                        Column(modifier = Modifier.padding(innerPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             HealthConnectProblemsBanner()
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 RequestPermissionButton()
                                 RequestHealthConnectPermissionButton()
                             }
                             ExportDestinationInputField()
-                            Row {
-                                RunDataExportButton()
-                            }
+                            Row { RunDataExportButton() }
                             ScheduleSwitch()
                         }
                     }
@@ -110,35 +91,15 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ScheduleSwitch(
-    viewModel: ExporterBackgroundWorkViewModel = viewModel()
-) {
+fun ScheduleSwitch(viewModel: ExporterBackgroundWorkViewModel = viewModel()) {
     val (checked, setChecked) = remember { mutableStateOf<Boolean?>(null) }
-
-    LaunchedEffect(true) {
-        setChecked(viewModel.isWorkScheduled())
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth()
-    ) {
+    LaunchedEffect(true) { setChecked(viewModel.isWorkScheduled()) }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp).fillMaxWidth()) {
         Text("Schedule Data Export")
-        Switch(
-            enabled = checked != null,
-            checked = checked ?: false,
-            modifier = Modifier.padding(start = 16.dp),
-            onCheckedChange = {
-                setChecked(it)
-                if (it) {
-                    viewModel.scheduleWork()
-                } else {
-                    viewModel.cancelWork()
-                }
-            },
-        )
+        Switch(enabled = checked != null, checked = checked ?: false, modifier = Modifier.padding(start = 16.dp), onCheckedChange = {
+            setChecked(it)
+            if (it) viewModel.scheduleWork() else viewModel.cancelWork()
+        })
     }
 }
 
@@ -146,91 +107,50 @@ fun ScheduleSwitch(
 fun ExportDestinationInputField() {
     val context = LocalContext.current
     val (fieldValue, setFieldValue) = remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(true) {
-        setFieldValue(context.dataStore.data.map { it[EXPORT_DESTINATION_URI] }.first() ?: "")
-    }
-
+    LaunchedEffect(true) { setFieldValue(context.dataStore.data.map { it[EXPORT_DESTINATION_URI] }.first() ?: "") }
     LaunchedEffect(fieldValue) {
         if (fieldValue == null) return@LaunchedEffect
         context.dataStore.edit { it[EXPORT_DESTINATION_URI] = fieldValue }
     }
-
-    TextField(enabled = fieldValue != null,
-        placeholder = { Text("Export destination URI") },
+    TextField(
+        enabled = fieldValue != null,
+        placeholder = { Text("Export destination URI, e.g. http://192.168.1.6:8094/...") },
         value = fieldValue ?: "Loading...",
         maxLines = 1,
-        prefix = { Text("http://") },
-        keyboardOptions = KeyboardOptions(
-            KeyboardCapitalization.None,
-            autoCorrect = false,
-            keyboardType = KeyboardType.Uri,
-            imeAction = ImeAction.Go
-        ),
-        onValueChange = { setFieldValue(it) })
+        keyboardOptions = KeyboardOptions(KeyboardCapitalization.None, autoCorrect = false, keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
+        onValueChange = { setFieldValue(it) }
+    )
 }
 
 @Composable
 fun RunDataExportButton() {
     val context = LocalContext.current
     val workManager = WorkManager.getInstance(context)
-
-    Button(
-        onClick = {
-            workManager.enqueueUniqueWork(
-                WORK_NAME_ONCE,
-                androidx.work.ExistingWorkPolicy.REPLACE,
-                OneTimeWorkRequest.from(DataExporterScheduleWorker::class.java)
-            )
-        }
-    ) {
-        Text(text = "Run Data Export")
-    }
+    Button(onClick = {
+        workManager.enqueueUniqueWork(WORK_NAME_ONCE, androidx.work.ExistingWorkPolicy.REPLACE, OneTimeWorkRequest.from(DataExporterScheduleWorker::class.java))
+    }) { Text(text = "Run Data Export") }
 }
 
-val requiredPermissions = arrayOf(
-    android.Manifest.permission.POST_NOTIFICATIONS,
-)
+val requiredPermissions = arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)
 
 @Composable
 fun RequestPermissionButton() {
     val context = LocalContext.current
-    val isPermissionGranted = ActivityCompat.checkSelfPermission(
-        context as MainActivity, android.Manifest.permission.POST_NOTIFICATIONS
-    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-    Button(
-        enabled = !isPermissionGranted,
-        onClick = {
-            Log.d("MainActivity", "RequestPermissionButton is Pressed")
-            ActivityCompat.requestPermissions(
-                context,
-                requiredPermissions,
-                1,
-            )
-        },
-    ) {
-        Text(text = "Notification Permission")
-    }
+    val isPermissionGranted = ActivityCompat.checkSelfPermission(context as MainActivity, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    Button(enabled = !isPermissionGranted, onClick = {
+        Log.d("MainActivity", "RequestPermissionButton is Pressed")
+        ActivityCompat.requestPermissions(context, requiredPermissions, 1)
+    }) { Text(text = "Notification Permission") }
 }
 
 @Composable
 fun RequestHealthConnectPermissionButton() {
-    var isButtonEnabled = true
-
     val context = LocalContext.current
-    val healthConnect = HealthConnectClient.getOrCreate(context)
-    val permissionLauncher =
-        rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
-            Log.d("MainActivity", "Health Connect granted permissions: $granted")
-        }
-
-    Button(
-        enabled = isButtonEnabled,
-        onClick = {
-            permissionLauncher.launch(requiredHealthConnectPermissions)
-        },
-    ) {
+    HealthConnectClient.getOrCreate(context)
+    val permissionLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
+        Log.d("MainActivity", "Health Connect granted permissions: $granted")
+    }
+    Button(enabled = true, onClick = { permissionLauncher.launch(requiredHealthConnectPermissions) }) {
         Text(text = "Health Connect Permission")
     }
 }
