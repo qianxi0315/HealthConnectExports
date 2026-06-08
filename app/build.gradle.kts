@@ -11,32 +11,49 @@ android {
         applicationId = "xyz.angeloanan.healthconnectexports"
         minSdk = 34
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1-operit-bridge"
+        versionCode = 3
+        versionName = "1.2-operit-cleartext-fix"
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables { useSupportLibrary = true }
+        vectorDrawables {
+            useSupportLibrary = true
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    kotlinOptions { jvmTarget = "1.8" }
-    buildFeatures { compose = true }
-    composeOptions { kotlinCompilerExtensionVersion = "1.5.1" }
-    packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+    buildFeatures {
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
 }
 
 dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     val work_version = "2.9.0"
     val ktor_version = "2.3.9"
+
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.6.0")
     implementation("androidx.work:work-runtime-ktx:$work_version")
     implementation("androidx.health.connect:connect-client:1.1.0-alpha07")
